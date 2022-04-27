@@ -9,14 +9,24 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.Timer;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class ConnectingTheDotsMain extends JFrame implements ActionListener, MouseListener {
 	private JFrame frame;
@@ -32,6 +42,9 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 	private JLabel errorLabel;
 	private Graphics graphics;
 	private int dotCount;
+	private List<Coordinates> coordinates = new ArrayList<Coordinates>();
+	private JDialog messageDialog;
+
 	private int circleDiameter = 10;
 
 	/**
@@ -117,6 +130,8 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 			this.dotCountConfirmClick();
 		} else if (e.getSource() == btnClear) {
 			this.clearDots();
+		} else if (e.getSource() == btnSave) {
+			this.selectSaveFile("Save");
 		}
 		
 	}
@@ -161,6 +176,9 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 	 * @param y
 	 */
 	private void drawDots(int x, int y) {
+		if (!coordinates.stream().anyMatch(coordinate -> coordinate.getX() == x && coordinate.getY() == y)) {
+			coordinates.add(new Coordinates(x, y));
+		}
 		graphics = grid.getGraphics();
 		graphics.fillOval(x, y, circleDiameter, circleDiameter);
 	}
@@ -224,6 +242,7 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 	 */
 	private void clearDots() {
 		grid.repaint();
+		coordinates.clear();
 	}
 	
 	@Override
@@ -233,6 +252,98 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 		this.drawDots(x, y);
 	}
 
+	/**
+	 * This method opens a file chooser to save/load a file
+	 * 
+	 * @param type
+	 */
+	private void selectSaveFile(String type) {
+		if (type == "Save" && coordinates.isEmpty()) {
+			this.showMessage("No data added. Please add/load data before saving.");
+			return;
+		}
+		JFileChooser fileChooser = new JFileChooser();
+		fileChooser.setCurrentDirectory(new File("."));
+		fileChooser.setDialogTitle(type + " File");
+		FileNameExtensionFilter filter = new FileNameExtensionFilter(".ser", "ser");
+		fileChooser.setFileFilter(filter);
+		if (type == "Save") {
+			if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+				String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+				if (!filePath.contains(".ser")) {
+					filePath += ".ser";
+				}
+				this.saveToFile(filePath);
+			}
+		}
+	}
+
+	/**
+	 * This method saves the configuration to a file
+	 * 
+	 * @param filePath
+	 */
+	private void saveToFile(String filePath) {
+		try {
+			FileOutputStream writeData = new FileOutputStream(filePath);
+			ObjectOutputStream writeStream = new ObjectOutputStream(writeData);
+			writeStream.writeObject(coordinates);
+			writeStream.flush();
+			writeStream.close();
+			this.showMessage("Data successfully saved.");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * This method shows a pop-up with messages
+	 * 
+	 * @param message
+	 */
+	private void showMessage(String message) {
+		if (messageDialog != null) {
+			messageDialog.dispose();
+		}
+		messageDialog = new JDialog(frame, "Message");
+		messageDialog.setSize(350, 200);
+		messageDialog.setResizable(false);
+		messageDialog.setVisible(true);
+		messageDialog.setLocationRelativeTo(frame);
+
+		JLabel messageLabel = new JLabel("<html>" + message + "</html>", SwingConstants.CENTER);
+		messageLabel.setBounds(20, 20, 150, 50);
+		messageDialog.add(messageLabel);
+		this.startTimer("messageDialog.dispose()", 3000);
+	}
+
+	private void startTimer(String functionName, int millis) {
+		Timer timer = new java.util.Timer();
+		timer.schedule(new java.util.TimerTask() {
+			@Override
+			public void run() {
+				if (functionName == "messageDialog.dispose()") {
+					messageDialog.dispose();
+				} else if (functionName == "loopAndDraw(coordinates)") {
+					loopAndDraw(coordinates);
+				}
+				timer.cancel();
+			}
+		}, millis);
+	}
+
+
+	/**
+	 * This method loops through list of coordinates and draw each dot
+	 * 
+	 * @param data - list of coordinates
+	 */
+	private void loopAndDraw(List<Coordinates> data) {
+		for (Coordinates coordinate : data) {
+			this.drawDots(coordinate.getX(), coordinate.getY());
+		}
+	}
+	
 	@Override
 	public void mousePressed(MouseEvent e) {
 	}
