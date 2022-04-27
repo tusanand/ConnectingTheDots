@@ -115,6 +115,8 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 			this.showDotCountDialog();
 		} else if (e.getSource() == dotCountConfirm) {
 			this.dotCountConfirmClick();
+		} else if (e.getSource() == btnClear) {
+			this.clearDots();
 		}
 		
 	}
@@ -215,6 +217,13 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 	private void setDotCount(int dotCount) {
 		this.dotCount = dotCount;
 		this.displayRandomDots();
+	}
+
+	/**
+	 * This method clears dots from the screen
+	 */
+	private void clearDots() {
+		grid.repaint();
 	}
 	
 	@Override
