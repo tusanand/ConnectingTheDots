@@ -10,8 +10,10 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -132,6 +134,8 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 			this.clearDots();
 		} else if (e.getSource() == btnSave) {
 			this.selectSaveFile("Save");
+		} else if (e.getSource() == btnLoad) {
+			this.selectSaveFile("Load");
 		}
 		
 	}
@@ -267,6 +271,20 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 		fileChooser.setDialogTitle(type + " File");
 		FileNameExtensionFilter filter = new FileNameExtensionFilter(".ser", "ser");
 		fileChooser.setFileFilter(filter);
+		if (type == "Load") {
+			if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+				this.clearDots();
+				Timer timer = new java.util.Timer();
+				timer.schedule(new java.util.TimerTask() {
+					@Override
+					public void run() {
+						loadFromFile(fileChooser.getSelectedFile().getAbsolutePath());
+						timer.cancel();
+					}
+				}, 100);
+
+			}
+		}
 		if (type == "Save") {
 			if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
 				String filePath = fileChooser.getSelectedFile().getAbsolutePath();
@@ -275,6 +293,33 @@ public class ConnectingTheDotsMain extends JFrame implements ActionListener, Mou
 				}
 				this.saveToFile(filePath);
 			}
+		}
+	}
+
+	/**
+	 * This method loads the configuration from the selected file
+	 * 
+	 * @param filePath
+	 */
+	private void loadFromFile(String filePath) {
+		try {
+			File f = new File(filePath);
+			if (!f.exists()) {
+				this.showMessage("No saved data found.");
+				return;
+			}
+			FileInputStream readData = new FileInputStream(filePath);
+			ObjectInputStream readStream = new ObjectInputStream(readData);
+			List<Coordinates> dotLocations = (List<Coordinates>) readStream.readObject();
+			readStream.close();
+			if (dotLocations.isEmpty()) {
+				this.showMessage("Saved file is empty.");
+				return;
+			}
+			this.loopAndDraw(dotLocations);
+			this.showMessage("Data successfully loaded.");
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
